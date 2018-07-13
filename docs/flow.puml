@@ -1,0 +1,45 @@
+@startuml
+
+actor Initiator as initiator
+participant TransferService as ts
+control Queue as queue
+participant CaptureHandler as capturer
+database Database as db
+
+alt Blocking Scope
+initiator -> ts
+ts -> ts : Check Currency
+
+else Currency don't match
+ts -> initiator : Response: 400
+
+else
+ts -> ts : Check Balance
+else Low Ballance
+ts -> initiator : Response: 400
+else
+ts -> ts : Create Money Lock
+ts -> queue : Send event to perform transfer
+ts -> initiator : Response: 201
+end
+
+queue -> capturer: Capture Event
+capturer -> db : Open transaction
+alt DB transaction
+capturer --> db : Create Transaction
+capturer --> db : Decrease senders balance
+capturer --> db : Increase Recipients balance
+capturer --> db : Create History Entry for sender
+capturer --> db : Create History entry for recipient
+capturer -> db : Commit Transaction
+
+capturer -> queue : Transaction Success Event
+
+else Error Occurs
+capturer -> db : Rollback
+capturer -> queue : Error Event
+
+
+end
+
+@enduml
