@@ -29,7 +29,6 @@ public class DefaultTransferService implements TransferService {
                 try {
                     if (! account.getCurrency().equals(transferRequest.getCurrency())) return TransferResponse.CURRENCY_NOT_MATCH;
                     if (BigDecimal.valueOf(account.getBalance()).compareTo(BigDecimal.valueOf(transferRequest.getAmount())) < 0) return TransferResponse.LOW_BALLANCE;
-
                     else return TransferResponse.CREATED;
                 }
 

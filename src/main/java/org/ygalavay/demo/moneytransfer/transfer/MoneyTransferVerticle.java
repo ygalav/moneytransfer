@@ -1,14 +1,18 @@
 package org.ygalavay.demo.moneytransfer.transfer;
 
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
-import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.core.Handler;
+import io.vertx.reactivex.core.AbstractVerticle;
+import io.vertx.reactivex.core.http.HttpServer;
+import io.vertx.reactivex.core.http.HttpServerResponse;
+import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import io.vertx.reactivex.ext.web.Router;
+import io.vertx.reactivex.ext.web.handler.BodyHandler;
 import org.ygalavay.demo.moneytransfer.transfer.configuration.DependencyManager;
 import org.ygalavay.demo.moneytransfer.transfer.model.AuthorizeResult;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferRequest;
-import io.vertx.core.AbstractVerticle;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
-import io.vertx.ext.web.Router;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.transfer.service.TransferService;
 
@@ -18,10 +22,21 @@ public class MoneyTransferVerticle extends AbstractVerticle {
     private static final String CONTENT_TYPE_HEADER_NAME = "content-type";
 
     private TransferService transferService;
+    private JDBCClient jdbc;
 
     @Override
     public void start(Future<Void> fut) throws Exception {
         transferService = DependencyManager.createTransferService(vertx);
+        jdbc = JDBCClient.createShared(vertx, config(), "My-Whisky-Collection");
+
+
+        startWebApp(
+            (http) -> completeStartup(http, fut)
+        );
+
+    }
+
+    private void startWebApp(Handler<AsyncResult<HttpServer>> next) {
         Router router = Router.router(vertx);
         router.route("/api/transactions*").handler(BodyHandler.create());
         router.post("/api/transactions").handler(context -> {
@@ -41,16 +56,17 @@ public class MoneyTransferVerticle extends AbstractVerticle {
 
         vertx.createHttpServer()
             .requestHandler(router::accept)
-            .listen(
-                config().getInteger("transaction.http.port", 8080),
-                result -> {
-                    if (result.succeeded()) {
-                        fut.complete();
-                    } else {
-                        fut.fail(result.cause());
-                    }
-                });
+            .listen(config().getInteger("transaction.http.port", 8080),
+                next);
 
+    }
+
+    private void completeStartup(AsyncResult<HttpServer> http, Future<Void> fut) {
+        if (http.succeeded()) {
+            fut.complete();
+        } else {
+            fut.fail(http.cause());
+        }
     }
 
     private HttpServerResponse setContentType(final HttpServerResponse response, final String contentType) {

@@ -1,6 +1,6 @@
 package org.ygalavay.demo.moneytransfer.transfer.configuration;
 
-import io.vertx.core.Vertx;
+import io.vertx.reactivex.core.Vertx;
 import org.ygalavay.demo.moneytransfer.transfer.repository.AccountRepository;
 import org.ygalavay.demo.moneytransfer.transfer.repository.DummyAccountRepository;
 import org.ygalavay.demo.moneytransfer.transfer.service.DefaultTransferService;

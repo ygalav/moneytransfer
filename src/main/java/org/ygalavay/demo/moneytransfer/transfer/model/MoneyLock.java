@@ -6,4 +6,8 @@ public class MoneyLock {
 
     private double amount;
 
+    private Currency currency;
+
+    private PaymentTransaction paymentTransaction;
+
 }

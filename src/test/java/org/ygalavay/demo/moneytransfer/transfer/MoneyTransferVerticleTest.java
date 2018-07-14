@@ -16,6 +16,9 @@ import org.ygalavay.demo.moneytransfer.transfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.transfer.model.AuthorizeResult;
 import org.ygalavay.demo.moneytransfer.transfer.model.Currency;
 
+import java.io.File;
+import java.nio.file.Files;
+
 @RunWith(VertxUnitRunner.class)
 public class MoneyTransferVerticleTest {
 
@@ -25,9 +28,12 @@ public class MoneyTransferVerticleTest {
     @Before
     public void setUp(TestContext context) throws Exception {
         vertx = Vertx.vertx();
+
+        byte[] bytes = Files.readAllBytes(new File("src/test/resources/config.json").toPath());
+        JsonObject config = new JsonObject(new String(bytes, "UTF-8"));
+
         DeploymentOptions options = new DeploymentOptions()
-            .setConfig(new JsonObject().put("http.port", PORT)
-            );
+            .setConfig(config);
         vertx.deployVerticle(MoneyTransferVerticle.class.getName(), options, context.asyncAssertSuccess());
     }
 
