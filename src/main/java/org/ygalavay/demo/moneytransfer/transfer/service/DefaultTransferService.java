@@ -11,19 +11,14 @@ import java.math.BigDecimal;
 
 public class DefaultTransferService implements TransferService {
 
-    private AccountRepository accountRepository;
-
-    public void setAccountRepository(AccountRepository accountRepository) {
+    public DefaultTransferService(AccountRepository accountRepository) {
         this.accountRepository = accountRepository;
     }
 
-    @Override
-    public void transfer(TransferRequest transferRequest, Handler<AsyncResult<TransferResponse>> handler) {
-
-    }
+    private AccountRepository accountRepository;
 
     @Override
-    public Single<TransferResponse> transfer(TransferRequest transferRequest) {
+    public Single<TransferResponse> authorize(TransferRequest transferRequest) {
         return accountRepository.getByEmail(transferRequest.getSender())
             .map(account -> {
                 try {

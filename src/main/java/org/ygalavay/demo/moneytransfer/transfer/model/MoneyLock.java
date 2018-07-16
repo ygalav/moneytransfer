@@ -4,6 +4,8 @@ import java.util.Date;
 
 public class MoneyLock {
 
+    private String id;
+
     private double amount;
 
     private Currency currency;

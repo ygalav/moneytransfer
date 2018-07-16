@@ -10,8 +10,7 @@ public class DependencyManager {
 
     public static TransferService createTransferService(final Vertx vertx) {
         AccountRepository accountRepository = new DummyAccountRepository();
-        DefaultTransferService transferService = new DefaultTransferService();
-        transferService.setAccountRepository(accountRepository);
+        DefaultTransferService transferService = new DefaultTransferService(accountRepository);
         return transferService;
     }
 }

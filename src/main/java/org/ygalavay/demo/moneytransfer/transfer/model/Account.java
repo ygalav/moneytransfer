@@ -69,4 +69,21 @@ public class Account {
         this.currency = currency;
         return this;
     }
+
+    public static Account of(String email, String name, String surname, Double balance, Currency currency) {
+        return new Account().setName(name).setSurname(surname).setEmail(email).setBalance(balance).setCurrency(currency);
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("Account{");
+        sb.append("email='").append(email).append('\'');
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", surname='").append(surname).append('\'');
+        sb.append(", balance=").append(balance);
+        sb.append(", currency=").append(currency);
+        sb.append(", locks=").append(locks);
+        sb.append('}');
+        return sb.toString();
+    }
 }

@@ -8,7 +8,6 @@ import org.ygalavay.demo.moneytransfer.transfer.dto.TransferRequest;
 
 public interface TransferService {
 
-    void transfer(TransferRequest transferRequest, Handler<AsyncResult<TransferResponse>> handler);
-    Single<TransferResponse> transfer(TransferRequest transferRequest);
+    Single<TransferResponse> authorize(TransferRequest transferRequest);
 
 }
