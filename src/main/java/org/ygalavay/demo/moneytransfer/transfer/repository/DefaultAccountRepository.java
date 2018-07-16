@@ -8,10 +8,13 @@ import io.vertx.ext.sql.UpdateResult;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.sql.SQLConnection;
 import org.ygalavay.demo.moneytransfer.transfer.model.Account;
+import org.ygalavay.demo.moneytransfer.transfer.model.Currency;
 
 import java.util.Arrays;
 
 public class DefaultAccountRepository implements AccountRepository {
+
+    private static final String SELECT_BY_EMAIL = "SELECT * FROM accounts WHERE email=?";
 
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAccountRepository.class);
 
@@ -39,7 +42,21 @@ public class DefaultAccountRepository implements AccountRepository {
 
     @Override
     public Single<Account> getByEmail(String email) {
-        return null;
+        return jdbcClient
+            .rxGetConnection()
+            .flatMap(
+                connection -> connection.rxQuerySingleWithParams(SELECT_BY_EMAIL, new JsonArray().add(email))
+                    .flatMap(result -> {
+                        connection.close();
+                        Account account = new Account();
+                        account.setEmail(result.getString(0))
+                            .setName(result.getString(1))
+                            .setSurname(result.getString(2))
+                            .setBalance(result.getDouble(3))
+                            .setCurrency(Currency.valueOf(result.getString(4)));
+                        return Single.just(account);
+                    })
+            );
     }
 
     public static DefaultAccountRepository of(JDBCClient jdbcClient) {
