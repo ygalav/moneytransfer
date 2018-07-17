@@ -10,14 +10,14 @@ import io.vertx.reactivex.core.AbstractVerticle;
 import io.vertx.reactivex.core.http.HttpServer;
 import io.vertx.reactivex.core.http.HttpServerResponse;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
-import io.vertx.reactivex.ext.sql.SQLConnection;
 import io.vertx.reactivex.ext.web.Router;
 import io.vertx.reactivex.ext.web.handler.BodyHandler;
 import org.ygalavay.demo.moneytransfer.transfer.configuration.DependencyManager;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferRequest;
+import org.ygalavay.demo.moneytransfer.transfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.transfer.model.AuthorizeResult;
 import org.ygalavay.demo.moneytransfer.transfer.repository.TestDataCreator;
-import org.ygalavay.demo.moneytransfer.transfer.service.TransferService;
+import org.ygalavay.demo.moneytransfer.TransferFacade;
 
 public class MoneyTransferVerticle extends AbstractVerticle {
 
@@ -26,14 +26,14 @@ public class MoneyTransferVerticle extends AbstractVerticle {
 
     private final Logger LOG = LoggerFactory.getLogger(MoneyTransferVerticle.class);
 
-    private TransferService transferService;
+    private TransferFacade transferFacade;
     private JDBCClient jdbc;
 
     @Override
     public void start(Future<Void> fut) throws Exception {
         LOG.info("Strating MoneyTransferVerticle");
         jdbc = JDBCClient.createShared(vertx, config(), "MoneyTransfer-Collection");
-        transferService = DependencyManager.createTransferService(jdbc);
+        transferFacade = DependencyManager.createTransferService(jdbc);
 
         TestDataCreator.of(jdbc).createDatabaseStructure()
             .andThen(TestDataCreator.of(jdbc).createUserData())
@@ -51,8 +51,13 @@ public class MoneyTransferVerticle extends AbstractVerticle {
         router.post("/api/transactions").handler(context -> {
             TransferRequest transferRequest = Json.decodeValue(context.getBodyAsString(),
                 TransferRequest.class);
-            transferService.authorize(transferRequest).subscribe(result -> {
-                HttpServerResponse response = setContentType(context.response(), CONTENT_TYPE_APPLICATION_JSON);
+            HttpServerResponse response = setContentType(context.response(), CONTENT_TYPE_APPLICATION_JSON);
+            transferFacade.authorize(transferRequest)
+                .doOnError(throwable -> {
+                    response.setStatusCode(500);
+                    response.end(Json.encodePrettily(TransferResponse.UNKNOWN_EROOR));
+                })
+                .subscribe(result -> {
                 if (AuthorizeResult.ACCEPTED == result.getResult()) {
                     response.setStatusCode(201);
                 }
