@@ -39,13 +39,13 @@ public class TestDataCreator {
             .flatMap(connection ->
                 connection.rxUpdate("DROP SCHEMA PUBLIC CASCADE")
                 .flatMap(result -> connection.rxUpdate(
-                    "CREATE TABLE accounts(email VARCHAR(32) NOT NULL PRIMARY KEY, name VARCHAR(32), surname VARCHAR(32), balance DOUBLE, currency VARCHAR(3))")
+                    "CREATE TABLE accounts(email VARCHAR(256) NOT NULL PRIMARY KEY, name VARCHAR(256), surname VARCHAR(256), balance DOUBLE, currency VARCHAR(3))")
                 )
                 .flatMap(result -> connection.rxUpdate(
-                    "CREATE TABLE payment_transactions(id VARCHAR(32) NOT NULL PRIMARY KEY, sender VARCHAR(32), recipient VARCHAR(32))")
+                    "CREATE TABLE payment_transactions(id VARCHAR(256) NOT NULL PRIMARY KEY, sender VARCHAR(256), recipient VARCHAR(256))")
                 )
                 .flatMap(result -> connection.rxUpdate("CREATE TABLE money_locks " +
-                    "(id VARCHAR(32) NOT NULL PRIMARY KEY, amount DOUBLE, currency VARCHAR(3), transaction VARCHAR(32)) "
+                    "(id VARCHAR(256) NOT NULL PRIMARY KEY, amount DOUBLE, currency VARCHAR(3), transaction VARCHAR(256)) "
                 ))
                 .flatMap(
                     result -> connection.rxUpdate("ALTER TABLE payment_transactions ADD CONSTRAINT fk1 FOREIGN KEY (sender) REFERENCES accounts(email)")
