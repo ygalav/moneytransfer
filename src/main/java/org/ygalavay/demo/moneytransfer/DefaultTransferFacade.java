@@ -3,21 +3,20 @@ package org.ygalavay.demo.moneytransfer;
 import io.reactivex.Single;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferResponse;
-import org.ygalavay.demo.moneytransfer.transfer.repository.AccountRepository;
 import org.ygalavay.demo.moneytransfer.transfer.service.AccountService;
-import org.ygalavay.demo.moneytransfer.transfer.service.TransactionService;
+import org.ygalavay.demo.moneytransfer.transfer.service.PaymentTransactionService;
 
 import java.math.BigDecimal;
 
 public class DefaultTransferFacade implements TransferFacade {
 
-    public DefaultTransferFacade(AccountService accountService, TransactionService transactionService) {
+    public DefaultTransferFacade(AccountService accountService, PaymentTransactionService transactionService) {
         this.accountService = accountService;
         this.transactionService = transactionService;
     }
 
     private final AccountService accountService;
-    private final TransactionService transactionService;
+    private final PaymentTransactionService transactionService;
 
 
     @Override

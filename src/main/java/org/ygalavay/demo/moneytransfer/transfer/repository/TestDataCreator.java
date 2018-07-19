@@ -6,6 +6,7 @@ import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import io.vertx.reactivex.ext.sql.SQLConnection;
 import org.ygalavay.demo.moneytransfer.transfer.model.Account;
 import org.ygalavay.demo.moneytransfer.transfer.model.Currency;
+import org.ygalavay.demo.moneytransfer.transfer.repository.jdbc.DefaultAccountRepository;
 
 public class TestDataCreator {
 

@@ -6,7 +6,7 @@ import org.ygalavay.demo.moneytransfer.transfer.model.Account;
 import org.ygalavay.demo.moneytransfer.transfer.model.Currency;
 import org.ygalavay.demo.moneytransfer.transfer.model.PaymentTransaction;
 
-public interface TransactionService {
+public interface PaymentTransactionService {
 
     Single<PaymentTransaction> openPaymentTransaction(final Account sender, final Account recipient,
                                                       final Currency currency, final Double amount);
