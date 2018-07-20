@@ -1,7 +1,6 @@
 package org.ygalavay.demo.moneytransfer;
 
 import io.vertx.core.AbstractVerticle;
-import org.ygalavay.demo.moneytransfer.transfer.MoneyTransferVerticle;
 
 public class MainVerticle extends AbstractVerticle {
 
