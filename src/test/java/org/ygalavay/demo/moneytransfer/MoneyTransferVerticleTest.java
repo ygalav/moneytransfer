@@ -23,7 +23,7 @@ import java.nio.file.Files;
 @RunWith(VertxUnitRunner.class)
 public class MoneyTransferVerticleTest {
 
-    public static final int PORT = 8080;
+    private Integer port;
     private Vertx vertx;
     JsonObject config;
 
@@ -33,9 +33,12 @@ public class MoneyTransferVerticleTest {
 
         byte[] bytes = Files.readAllBytes(new File("src/test/resources/config.json").toPath());
         config = new JsonObject(new String(bytes, "UTF-8"));
+        port = config.getInteger("http.port");
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
-        vertx.deployVerticle(AuthorizationVerticle.class.getName(), options, context.asyncAssertSuccess());
+        //vertx.deployVerticle(AuthorizationVerticle.class.getName(), options, context.asyncAssertSuccess());
+        //vertx.deployVerticle(CapturingVerticle.class.getName(), options, context.asyncAssertSuccess());
+        vertx.deployVerticle(MainVerticle.class.getName(), options, context.asyncAssertSuccess());
     }
 
     @Test
@@ -49,7 +52,7 @@ public class MoneyTransferVerticleTest {
         final String json = Json.encodePrettily(request);
 
         vertx.createHttpClient()
-            .post(PORT, "localhost", "/api/transactions")
+            .post(config.getInteger("http.port"), "localhost", "/api/transactions")
             .putHeader("content-type", "application/json")
             .putHeader("content-length", Integer.toString(json.length()))
             .handler(response -> {
@@ -79,7 +82,7 @@ public class MoneyTransferVerticleTest {
         final String json = Json.encodePrettily(request);
 
         vertx.createHttpClient()
-            .post(PORT, "localhost", "/api/transactions")
+            .post(port, "localhost", "/api/transactions")
             .putHeader("content-type", "application/json")
             .putHeader("content-length", Integer.toString(json.length()))
             .handler(response -> {
@@ -110,7 +113,7 @@ public class MoneyTransferVerticleTest {
         final String json = Json.encodePrettily(request);
 
         vertx.createHttpClient()
-            .post(PORT, "localhost", "/api/transactions")
+            .post(port, "localhost", "/api/transactions")
             .putHeader("content-type", "application/json")
             .putHeader("content-length", Integer.toString(json.length()))
             .handler(response -> {
