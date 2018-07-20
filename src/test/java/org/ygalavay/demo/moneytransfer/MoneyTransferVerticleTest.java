@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.ygalavay.demo.moneytransfer.configuration.Constants;
 import org.ygalavay.demo.moneytransfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.model.AuthorizeResult;
@@ -24,14 +25,14 @@ public class MoneyTransferVerticleTest {
 
     public static final int PORT = 8080;
     private Vertx vertx;
+    JsonObject config;
 
     @Before
     public void setUp(TestContext context) throws Exception {
         vertx = Vertx.vertx();
 
         byte[] bytes = Files.readAllBytes(new File("src/test/resources/config.json").toPath());
-        JsonObject config = new JsonObject(new String(bytes, "UTF-8"));
-
+        config = new JsonObject(new String(bytes, "UTF-8"));
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
         vertx.deployVerticle(AuthorizationVerticle.class.getName(), options, context.asyncAssertSuccess());
@@ -55,11 +56,47 @@ public class MoneyTransferVerticleTest {
                 context.assertEquals(response.statusCode(), 201);
                 context.assertTrue(response.headers().get("content-type").contains("application/json"));
                 response.bodyHandler(body -> {
+                    TransferResponse transferResponse = Json.decodeValue(body, TransferResponse.class);
+                    context.assertTrue(transferResponse.getResult() == AuthorizeResult.ACCEPTED);
                     async.complete();
                 });
             })
             .write(json)
             .end();
+    }
+
+
+    @Test
+    public void shouldStartFulfillingSuccessTransaction(TestContext context) {
+        Async restResponseAsync = context.async();
+        Async captureEventReceivedAcync = context.async();
+
+        final TransferRequest request = new TransferRequest()
+            .setSender("account1@mail.com")
+            .setRecipient("ygalavay@mail.com")
+            .setCurrency(Currency.USD)
+            .setAmount(50.0d);
+        final String json = Json.encodePrettily(request);
+
+        vertx.createHttpClient()
+            .post(PORT, "localhost", "/api/transactions")
+            .putHeader("content-type", "application/json")
+            .putHeader("content-length", Integer.toString(json.length()))
+            .handler(response -> {
+                context.assertEquals(response.statusCode(), 201);
+                response.bodyHandler(body -> {
+                    TransferResponse transferResponse = Json.decodeValue(body, TransferResponse.class);
+                    context.assertTrue(transferResponse.getResult() == AuthorizeResult.ACCEPTED);
+                    restResponseAsync.complete();
+                });
+            })
+            .write(json)
+            .end();
+        vertx.eventBus().<String>consumer(config.getString(Constants.CAPTURE_MSG_NAME)).handler(objectMessage -> {
+            String transactionId = objectMessage.body();
+            context.assertTrue(transactionId != null);
+            captureEventReceivedAcync.complete();
+        });
     }
 
     @Test
