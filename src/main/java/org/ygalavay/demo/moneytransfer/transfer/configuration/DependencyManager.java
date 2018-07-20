@@ -1,5 +1,6 @@
 package org.ygalavay.demo.moneytransfer.transfer.configuration;
 
+import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import org.ygalavay.demo.moneytransfer.DefaultTransferFacade;
 import org.ygalavay.demo.moneytransfer.TransferFacade;
@@ -16,15 +17,16 @@ import org.ygalavay.demo.moneytransfer.transfer.service.impl.DefaultPaymentTrans
 
 public class DependencyManager {
 
-    public static TransferFacade createTransferService(final JDBCClient jdbcClient) {
+    public static TransferFacade createTransferService(final JDBCClient jdbcClient, Vertx vertx) {
         AccountRepository accountRepository = new DefaultAccountRepository(jdbcClient);
         AccountService accountService = new DefaultAccountService(accountRepository);
         PaymentTransactionRepository paymentTransactionRepository = new DefaultPaymentTransactionRepository(jdbcClient);
         MoneyLockRepository moneyLockRepository = new DefaultMoneyLockRepository(jdbcClient);
 
-        PaymentTransactionService transactionService = new DefaultPaymentTransactionService(jdbcClient, paymentTransactionRepository, moneyLockRepository);
+        PaymentTransactionService transactionService =
+            new DefaultPaymentTransactionService(jdbcClient, paymentTransactionRepository, moneyLockRepository);
 
-        DefaultTransferFacade transferFacade = new DefaultTransferFacade(accountService, transactionService);
+        DefaultTransferFacade transferFacade = new DefaultTransferFacade(vertx, accountService, transactionService);
         return transferFacade;
     }
 }

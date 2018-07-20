@@ -33,7 +33,7 @@ public class MoneyTransferVerticle extends AbstractVerticle {
     public void start(Future<Void> fut) throws Exception {
         LOG.info("Strating MoneyTransferVerticle");
         jdbc = JDBCClient.createShared(vertx, config(), "MoneyTransfer-Collection");
-        transferFacade = DependencyManager.createTransferService(jdbc);
+        transferFacade = DependencyManager.createTransferService(jdbc, vertx);
 
         TestDataCreator.of(jdbc).createDatabaseStructure()
             .andThen(TestDataCreator.of(jdbc).createUserData())

@@ -1,6 +1,8 @@
 package org.ygalavay.demo.moneytransfer.transfer.service.impl;
 
 import io.reactivex.Single;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.reactivex.ext.sql.SQLClient;
 import org.ygalavay.demo.moneytransfer.transfer.model.Account;
 import org.ygalavay.demo.moneytransfer.transfer.model.Currency;
@@ -11,6 +13,8 @@ import org.ygalavay.demo.moneytransfer.transfer.repository.PaymentTransactionRep
 import org.ygalavay.demo.moneytransfer.transfer.service.PaymentTransactionService;
 
 public class DefaultPaymentTransactionService implements PaymentTransactionService {
+
+    private Logger LOG = LoggerFactory.getLogger(DefaultPaymentTransactionService.class);
 
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final MoneyLockRepository moneyLockRepository;
@@ -38,6 +42,12 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                     .flatMap(lock -> connection
                         .rxCommit()
                         .andThen(Single.just(paymentTransaction.setMoneyLock(lock))));
+            })
+            .doOnError(error -> {
+                LOG.error(
+                    String.format("Error happened when saving transaction performing payment transaction, sender [%s], recipient [%s], currency [%s], amount [%s]",
+                        sender.getEmail(), recipient.getEmail(), currency.name(), amount));
+                connection.rxRollback();
             }));
     }
 }

@@ -1,8 +1,12 @@
 package org.ygalavay.demo.moneytransfer;
 
 import io.reactivex.Single;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
+import io.vertx.reactivex.core.Vertx;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.transfer.dto.TransferResponse;
+import org.ygalavay.demo.moneytransfer.transfer.model.PaymentTransaction;
 import org.ygalavay.demo.moneytransfer.transfer.service.AccountService;
 import org.ygalavay.demo.moneytransfer.transfer.service.PaymentTransactionService;
 
@@ -10,13 +14,17 @@ import java.math.BigDecimal;
 
 public class DefaultTransferFacade implements TransferFacade {
 
-    public DefaultTransferFacade(AccountService accountService, PaymentTransactionService transactionService) {
+    private Logger log = LoggerFactory.getLogger(DefaultTransferFacade.class);
+
+    public DefaultTransferFacade(Vertx vertx, AccountService accountService, PaymentTransactionService transactionService) {
         this.accountService = accountService;
         this.transactionService = transactionService;
+        this.vertx = vertx;
     }
 
     private final AccountService accountService;
     private final PaymentTransactionService transactionService;
+    private final Vertx vertx;
 
 
     @Override
@@ -29,6 +37,10 @@ public class DefaultTransferFacade implements TransferFacade {
                     return accountService.getByEmail(transferRequest.getRecipient())
                         .flatMap(
                             recipient -> transactionService.openPaymentTransaction(sender, recipient, transferRequest.getCurrency(), transferRequest.getAmount()))
+                        .doOnSuccess(transaction -> {
+                            log.info(String.format("Publish successful payment transaction to fulfill, transaction id: [%s]", transaction.getId()));
+                            vertx.eventBus().rxSend("transactionsToFulfill", transaction);
+                        })
                         .flatMap(paymentTransaction -> Single.just(TransferResponse.CREATED));
                 }
             });
