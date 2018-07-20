@@ -1,5 +1,6 @@
 {
     "http.port": 8080,
     "url": "jdbc:hsqldb:file:moneytransfer;shutdown=true",
-    "driver_class" : "org.hsqldb.jdbcDriver"
+    "driver_class" : "org.hsqldb.jdbcDriver",
+    "capture_bus_event_name" : "transactionsToFulfill"
 }

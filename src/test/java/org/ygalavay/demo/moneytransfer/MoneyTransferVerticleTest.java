@@ -11,7 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.ygalavay.demo.moneytransfer.MoneyTransferVerticle;
 import org.ygalavay.demo.moneytransfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.model.AuthorizeResult;
@@ -35,7 +34,7 @@ public class MoneyTransferVerticleTest {
 
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
-        vertx.deployVerticle(MoneyTransferVerticle.class.getName(), options, context.asyncAssertSuccess());
+        vertx.deployVerticle(AuthorizationVerticle.class.getName(), options, context.asyncAssertSuccess());
     }
 
     @Test

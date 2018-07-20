@@ -1,5 +1,6 @@
 package org.ygalavay.demo.moneytransfer.configuration;
 
+import io.vertx.core.json.JsonObject;
 import io.vertx.reactivex.core.Vertx;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import org.ygalavay.demo.moneytransfer.facade.DefaultTransferFacade;
@@ -17,7 +18,7 @@ import org.ygalavay.demo.moneytransfer.service.impl.DefaultPaymentTransactionSer
 
 public class DependencyManager {
 
-    public static TransferFacade createTransferService(final JDBCClient jdbcClient, Vertx vertx) {
+    public static TransferFacade createTransferService(final JDBCClient jdbcClient, Vertx vertx, JsonObject config) {
         AccountRepository accountRepository = new DefaultAccountRepository(jdbcClient);
         AccountService accountService = new DefaultAccountService(accountRepository);
         PaymentTransactionRepository paymentTransactionRepository = new DefaultPaymentTransactionRepository(jdbcClient);
@@ -26,7 +27,8 @@ public class DependencyManager {
         PaymentTransactionService transactionService =
             new DefaultPaymentTransactionService(jdbcClient, paymentTransactionRepository, moneyLockRepository);
 
-        DefaultTransferFacade transferFacade = new DefaultTransferFacade(vertx, accountService, transactionService);
+        DefaultTransferFacade transferFacade =
+            new DefaultTransferFacade(vertx, config, accountService, transactionService);
         return transferFacade;
     }
 }
