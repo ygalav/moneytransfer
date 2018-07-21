@@ -10,6 +10,8 @@ public class MoneyLock {
 
     private PaymentTransaction paymentTransaction;
 
+    private Account account;
+
     public String getId() {
         return id;
     }
@@ -43,6 +45,15 @@ public class MoneyLock {
 
     public MoneyLock setPaymentTransaction(PaymentTransaction paymentTransaction) {
         this.paymentTransaction = paymentTransaction;
+        return this;
+    }
+
+    public Account getAccount() {
+        return account;
+    }
+
+    public MoneyLock setAccount(Account account) {
+        this.account = account;
         return this;
     }
 }

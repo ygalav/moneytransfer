@@ -95,7 +95,7 @@ public class MoneyTransferVerticleTest {
             })
             .write(json)
             .end();
-        vertx.eventBus().<String>consumer(config.getString(Constants.CAPTURE_MSG_NAME)).handler(objectMessage -> {
+        vertx.eventBus().<String>consumer(config.getString(Constants.EVENT_DO_CAPTURE)).handler(objectMessage -> {
             String transactionId = objectMessage.body();
             context.assertTrue(transactionId != null);
             captureEventReceivedAcync.complete();

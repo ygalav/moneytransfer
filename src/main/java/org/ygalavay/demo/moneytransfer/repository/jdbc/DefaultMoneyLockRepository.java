@@ -13,7 +13,7 @@ import java.util.UUID;
 public class DefaultMoneyLockRepository implements MoneyLockRepository {
 
     private static final String CREATE_MONEY_LOCK_QUERY =
-        "INSERT INTO money_locks (id, amount, currency, transaction) VALUES (?, ?, ?, ?)";
+        "INSERT INTO money_locks (id, amount, currency, transaction, account) VALUES (?, ?, ?, ?, ?)";
 
     private final JDBCClient jdbcClient;
 
@@ -35,7 +35,7 @@ public class DefaultMoneyLockRepository implements MoneyLockRepository {
         }
         JsonArray params = new JsonArray(
             Arrays.asList(
-                moneyLock.getId(), moneyLock.getAmount(), moneyLock.getCurrency().name(), moneyLock.getPaymentTransaction().getId()
+                moneyLock.getId(), moneyLock.getAmount(), moneyLock.getCurrency().name(), moneyLock.getPaymentTransaction().getId(), moneyLock.getAccount().getEmail()
             ));
         return connection
             .rxUpdateWithParams(CREATE_MONEY_LOCK_QUERY, params)

@@ -1,10 +1,12 @@
 package org.ygalavay.demo.moneytransfer.facade;
 
+import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.reactivex.core.Vertx;
+import org.ygalavay.demo.moneytransfer.configuration.Constants;
 import org.ygalavay.demo.moneytransfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.service.AccountService;
@@ -12,7 +14,7 @@ import org.ygalavay.demo.moneytransfer.service.PaymentTransactionService;
 
 import java.math.BigDecimal;
 
-import static org.ygalavay.demo.moneytransfer.configuration.Constants.CAPTURE_MSG_NAME;
+import static org.ygalavay.demo.moneytransfer.configuration.Constants.EVENT_DO_CAPTURE;
 
 public class DefaultTransferFacade implements TransferFacade {
 
@@ -45,12 +47,17 @@ public class DefaultTransferFacade implements TransferFacade {
                             log.info(String.format("Publish successful payment transaction to fulfill, transaction id: [%s]", transaction.getId()));
                             vertx
                                 .eventBus()
-                                .publish(config.getString(CAPTURE_MSG_NAME), transaction.getId());
+                                .publish(config.getString(EVENT_DO_CAPTURE), transaction.getId());
                         })
                         .flatMap(paymentTransaction -> Single.just(TransferResponse.CREATED));
                 }
             });
+    }
 
-
+    @Override
+    public Completable fulfillTransaction(final String transactionId) {
+        return transactionService
+            .fulfillPaymentTransaction(transactionId)
+            .doOnComplete( () -> vertx.eventBus().publish(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS), transactionId) );
     }
 }

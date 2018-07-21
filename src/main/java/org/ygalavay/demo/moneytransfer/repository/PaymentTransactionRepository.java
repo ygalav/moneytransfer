@@ -9,4 +9,6 @@ public interface PaymentTransactionRepository {
     Single<PaymentTransaction> save(PaymentTransaction transaction);
 
     Single<PaymentTransaction> save(PaymentTransaction transaction, SQLConnection connection);
+
+    Single<PaymentTransaction> findById(final String id);
 }

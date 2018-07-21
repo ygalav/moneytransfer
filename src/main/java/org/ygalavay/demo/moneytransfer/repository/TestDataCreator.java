@@ -46,7 +46,7 @@ public class TestDataCreator {
                     "CREATE TABLE payment_transactions(id VARCHAR(256) NOT NULL PRIMARY KEY, sender VARCHAR(256), recipient VARCHAR(256))")
                 )
                 .flatMap(result -> connection.rxUpdate("CREATE TABLE money_locks " +
-                    "(id VARCHAR(256) NOT NULL PRIMARY KEY, amount DOUBLE, currency VARCHAR(3), transaction VARCHAR(256)) "
+                    "(id VARCHAR(256) NOT NULL PRIMARY KEY, amount DOUBLE, currency VARCHAR(3), transaction VARCHAR(256), account VARCHAR(256)) "
                 ))
                 .flatMap(
                     result -> connection.rxUpdate("ALTER TABLE payment_transactions ADD CONSTRAINT fk1 FOREIGN KEY (sender) REFERENCES accounts(email)")

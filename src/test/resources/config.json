@@ -2,5 +2,7 @@
     "http.port": 35000,
     "url": "jdbc:hsqldb:file:moneytransfer;shutdown=true",
     "driver_class" : "org.hsqldb.jdbcDriver",
-    "capture_bus_event_name" : "transactionsToFulfill"
+    "event_do_capture" : "event_do_capture",
+    "event_captured_success" : "event_fulfilled_success",
+    "event_transaction_fulfilled_unknown_error" : "event_transaction_fulfilled_unknown_error"
 }
