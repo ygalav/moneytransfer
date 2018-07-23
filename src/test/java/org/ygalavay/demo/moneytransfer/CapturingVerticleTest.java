@@ -14,10 +14,12 @@ import org.ygalavay.demo.moneytransfer.configuration.Constants;
 import org.ygalavay.demo.moneytransfer.configuration.DependencyManager;
 import org.ygalavay.demo.moneytransfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.facade.TransferFacade;
+import org.ygalavay.demo.moneytransfer.model.Account;
 import org.ygalavay.demo.moneytransfer.model.Currency;
 import org.ygalavay.demo.moneytransfer.repository.TestDataCreator;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 
 @RunWith(VertxUnitRunner.class)
@@ -27,9 +29,11 @@ public class CapturingVerticleTest {
     private JsonObject config;
     private JDBCClient jdbcClient;
     private TransferFacade transferFacade;
+    private DependencyManager dependencyManager;
 
     @Before
     public void setUp(TestContext context) throws Exception {
+
         vertx = Vertx.vertx();
         byte[] bytes = Files.readAllBytes(new File("src/test/resources/config.json").toPath());
         config = new JsonObject(new String(bytes, "UTF-8"));
@@ -37,7 +41,8 @@ public class CapturingVerticleTest {
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
         jdbcClient = JDBCClient.createShared(vertx, config, "MoneyTransfer-Collection");
-        transferFacade = DependencyManager.getInstance(vertx, config).getTransferFacade();
+        dependencyManager = DependencyManager.getInstance(vertx, config);
+        transferFacade = dependencyManager.getTransferFacade();
 
         Async asyncInsertData = context.async();
         TestDataCreator.of(jdbcClient).createDatabaseStructure()
@@ -80,28 +85,42 @@ public class CapturingVerticleTest {
 
     @Test
     public void shouldChargeMoneyFromSenderIfTransactionSuccess(TestContext context) {
+        final String senderEmail = "account1@mail.com";
+        final String recipientEmail = "ygalavay@mail.com";
+        final double amountToCharge = 50.0;
         TransferRequest transferRequest = new TransferRequest()
-            .setSender("account1@mail.com").setRecipient("ygalavay@mail.com").setAmount(50.0).setCurrency(Currency.USD);
+            .setSender(senderEmail).setRecipient(recipientEmail).setAmount(amountToCharge).setCurrency(Currency.USD);
+
+        final Account sender = dependencyManager.getAccountService().getByEmail(senderEmail).blockingGet();
+        final Account recipient = dependencyManager.getAccountService().getByEmail(recipientEmail).blockingGet();
+
+        final BigDecimal senderBalanceBefore = BigDecimal.valueOf(sender.getBalance());
+        final BigDecimal recipientBalanceBefore = BigDecimal.valueOf(recipient.getBalance());
+
         transferFacade.authorize(transferRequest)
             .doOnError(error -> {
                 context.fail();
             })
             .subscribe();
 
-        Async asyncEventStartCaptureReceived = context.async();
+        Async asyncCheckBalance = context.async();
+        asyncCheckBalance.await(5000);
 
         vertx.eventBus()
-            .consumer(config.getString(Constants.EVENT_DO_CAPTURE))
+            .<String>consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
             .handler(message -> {
-                asyncEventStartCaptureReceived.complete();
-            });
+                String transactionId = message.body();
+                dependencyManager.getPaymentTransactionRepository()
+                    .findById(transactionId)
+                    .subscribe(paymentTransaction -> {
+                        BigDecimal newSenderBalance = BigDecimal.valueOf(paymentTransaction.getSender().getBalance());
+                        BigDecimal newRecipientBalance = BigDecimal.valueOf(paymentTransaction.getRecipient().getBalance());
+                        BigDecimal amount = BigDecimal.valueOf(amountToCharge);
 
-        Async asyncEventFulfillmentSuccess = context.async();
-        asyncEventFulfillmentSuccess.await(5000);
-        vertx.eventBus()
-            .consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
-            .handler(message -> {
-
+                        context.assertTrue(newSenderBalance.equals(senderBalanceBefore.subtract(amount)));
+                        context.assertTrue(newRecipientBalance.equals(recipientBalanceBefore.add(amount)));
+                        asyncCheckBalance.complete();
+                    });
             });
     }
 
