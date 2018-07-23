@@ -32,14 +32,17 @@ public class AuthorizationVerticle extends AbstractVerticle {
     @Override
     public void start(Future<Void> fut) throws Exception {
         LOG.info("Strating MoneyTransferVerticle");
-        jdbc = JDBCClient.createShared(vertx, config(), "MoneyTransfer-Collection");
-        transferFacade = DependencyManager.createTransferService(jdbc, vertx, config());
+        transferFacade = DependencyManager.createTransferService(vertx, config());
 
+        jdbc = JDBCClient.createShared(vertx, config(), "MoneyTransfer-Collection");
         TestDataCreator.of(jdbc).createDatabaseStructure()
             .andThen(TestDataCreator.of(jdbc).createUserData())
             .doOnError(throwable -> fut.fail(throwable.getMessage()))
+            .doOnComplete(() -> jdbc.close())
             .subscribe(() -> startWebApp(
-                (http) -> completeStartup(http, fut)
+                (http) -> {
+                    completeStartup(http, fut);
+                }
             ));
 
     }

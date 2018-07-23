@@ -18,7 +18,8 @@ import org.ygalavay.demo.moneytransfer.service.impl.DefaultPaymentTransactionSer
 
 public class DependencyManager {
 
-    public static TransferFacade createTransferService(final JDBCClient jdbcClient, Vertx vertx, JsonObject config) {
+    public static TransferFacade createTransferService(Vertx vertx, JsonObject config) {
+        JDBCClient jdbcClient = JDBCClient.createShared(vertx, config, "MoneyTransfer-Collection");
         AccountRepository accountRepository = new DefaultAccountRepository(jdbcClient);
         AccountService accountService = new DefaultAccountService(accountRepository);
         PaymentTransactionRepository paymentTransactionRepository = new DefaultPaymentTransactionRepository(jdbcClient);

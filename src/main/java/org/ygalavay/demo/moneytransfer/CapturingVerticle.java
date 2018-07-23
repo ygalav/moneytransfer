@@ -1,6 +1,5 @@
 package org.ygalavay.demo.moneytransfer;
 
-import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.reactivex.core.AbstractVerticle;
@@ -22,7 +21,7 @@ public class CapturingVerticle extends AbstractVerticle {
     public void start() throws Exception {
         super.start();
         jdbc = JDBCClient.createShared(vertx, config(), "MoneyTransfer-Collection");
-        transferFacade = DependencyManager.createTransferService(jdbc, vertx, config());
+        transferFacade = DependencyManager.createTransferService(vertx, config());
 
         vertx.eventBus().<String>consumer(config().getString(Constants.EVENT_DO_CAPTURE)).handler(message -> {
             String transactionId = message.body();

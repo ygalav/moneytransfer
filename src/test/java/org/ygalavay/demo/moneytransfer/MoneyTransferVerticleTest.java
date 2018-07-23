@@ -25,7 +25,7 @@ public class MoneyTransferVerticleTest {
 
     private Integer port;
     private Vertx vertx;
-    JsonObject config;
+    private JsonObject config;
 
     @Before
     public void setUp(TestContext context) throws Exception {
@@ -36,8 +36,6 @@ public class MoneyTransferVerticleTest {
         port = config.getInteger("http.port");
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
-        //vertx.deployVerticle(AuthorizationVerticle.class.getName(), options, context.asyncAssertSuccess());
-        //vertx.deployVerticle(CapturingVerticle.class.getName(), options, context.asyncAssertSuccess());
         vertx.deployVerticle(MainVerticle.class.getName(), options, context.asyncAssertSuccess());
     }
 
