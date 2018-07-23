@@ -18,15 +18,15 @@ ts -> ts : Check Balance
 else Low Ballance
 ts -> initiator : Response: 400
 else
+ts -> ts : Create Transaction
 ts -> ts : Create Money Lock
 ts -> queue : Send event to perform transfer
 ts -> initiator : Response: 201
 end
 
 queue -> capturer: Capture Event
-capturer -> db : Open transaction
+capturer --> db : Get Transaction
 alt DB transaction
-capturer --> db : Create Transaction
 capturer --> db : Decrease senders balance
 capturer --> db : Increase Recipients balance
 capturer --> db : Create History Entry for sender
