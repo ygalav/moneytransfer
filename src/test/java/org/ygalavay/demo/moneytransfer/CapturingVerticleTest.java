@@ -37,7 +37,7 @@ public class CapturingVerticleTest {
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
         jdbcClient = JDBCClient.createShared(vertx, config, "MoneyTransfer-Collection");
-        transferFacade = DependencyManager.createTransferService(vertx, config);
+        transferFacade = DependencyManager.getInstance(vertx, config).getTransferFacade();
 
         Async asyncInsertData = context.async();
         TestDataCreator.of(jdbcClient).createDatabaseStructure()
@@ -61,7 +61,7 @@ public class CapturingVerticleTest {
             .subscribe();
 
         Async asyncEventStartCaptureReceived = context.async();
-        asyncEventStartCaptureReceived.await(3000);
+
         vertx.eventBus()
             .consumer(config.getString(Constants.EVENT_DO_CAPTURE))
             .handler(message -> {
@@ -69,10 +69,39 @@ public class CapturingVerticleTest {
             });
 
         Async asyncEventFulfillmentSuccess = context.async();
+        asyncEventFulfillmentSuccess.await(5000);
         vertx.eventBus()
             .consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
             .handler(message -> {
                 asyncEventFulfillmentSuccess.complete();
+            });
+    }
+
+
+    @Test
+    public void shouldChargeMoneyFromSenderIfTransactionSuccess(TestContext context) {
+        TransferRequest transferRequest = new TransferRequest()
+            .setSender("account1@mail.com").setRecipient("ygalavay@mail.com").setAmount(50.0).setCurrency(Currency.USD);
+        transferFacade.authorize(transferRequest)
+            .doOnError(error -> {
+                context.fail();
+            })
+            .subscribe();
+
+        Async asyncEventStartCaptureReceived = context.async();
+
+        vertx.eventBus()
+            .consumer(config.getString(Constants.EVENT_DO_CAPTURE))
+            .handler(message -> {
+                asyncEventStartCaptureReceived.complete();
+            });
+
+        Async asyncEventFulfillmentSuccess = context.async();
+        asyncEventFulfillmentSuccess.await(5000);
+        vertx.eventBus()
+            .consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
+            .handler(message -> {
+
             });
     }
 

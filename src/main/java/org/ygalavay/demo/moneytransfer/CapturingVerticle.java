@@ -21,7 +21,7 @@ public class CapturingVerticle extends AbstractVerticle {
     public void start() throws Exception {
         super.start();
         jdbc = JDBCClient.createShared(vertx, config(), "MoneyTransfer-Collection");
-        transferFacade = DependencyManager.createTransferService(vertx, config());
+        transferFacade = DependencyManager.getInstance(vertx, config()).getTransferFacade();
 
         vertx.eventBus().<String>consumer(config().getString(Constants.EVENT_DO_CAPTURE)).handler(message -> {
             String transactionId = message.body();
@@ -31,7 +31,7 @@ public class CapturingVerticle extends AbstractVerticle {
                         log.info("Transaction fulfilled successfully");
                     },
                     (error) -> {
-                        log.error(String.format("Fulfillment has failed for transaction [%s]", transactionId));
+                        log.error(String.format("Fulfillment has failed for transaction [%s]", transactionId), error);
                         vertx.eventBus().publish(config().getString(EVENT_FULFILLMENT_UNKNOWN_ERROR), transactionId);
                     });
             log.info(String.format("Starting fulfillment for transaction %s", transactionId));
