@@ -6,9 +6,13 @@ import org.ygalavay.demo.moneytransfer.model.PaymentTransaction;
 
 public interface PaymentTransactionRepository {
 
-    Single<PaymentTransaction> save(PaymentTransaction transaction);
+    Single<PaymentTransaction> create(PaymentTransaction transaction);
 
-    Single<PaymentTransaction> save(PaymentTransaction transaction, SQLConnection connection);
+    Single<PaymentTransaction> update(PaymentTransaction transaction);
+
+    Single<PaymentTransaction> update(PaymentTransaction transaction, SQLConnection connection);
+
+    Single<PaymentTransaction> create(PaymentTransaction transaction, SQLConnection connection);
 
     Single<PaymentTransaction> findById(final String id);
 }

@@ -24,8 +24,8 @@ public class DefaultAccountRepository implements AccountRepository {
         this.jdbcClient = jdbcClient;
     }
 
-    public Single<UpdateResult> createAccount(Account account) {
-        LOG.info("Creating new user " + account.toString());
+    @Override
+    public Single<UpdateResult> create(Account account) {
         return jdbcClient.rxGetConnection()
             .flatMap(
                 connection -> connection.rxUpdateWithParams(
@@ -35,7 +35,23 @@ public class DefaultAccountRepository implements AccountRepository {
                             account.getEmail(), account.getName(), account.getSurname(), account.getBalance(), account.getCurrency().name()
                         )
                     ))
-                    .doOnSuccess(updateResult -> connection.close())
+                    .doFinally(connection::close)
+            );
+
+    }
+
+    @Override
+    public Single<UpdateResult> update(Account account) {
+        return jdbcClient.rxGetConnection()
+            .flatMap(
+                connection -> connection.rxUpdateWithParams(
+                    "UPDATE accounts SET name=?, surname=?, balance=?, currency=? WHERE email=?",
+                    new JsonArray(
+                        Arrays.asList(
+                            account.getName(), account.getSurname(), account.getBalance(), account.getCurrency().name(), account.getEmail()
+                        )
+                    ))
+                    .doFinally(connection::close)
             );
 
     }

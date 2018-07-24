@@ -10,6 +10,8 @@ public class PaymentTransaction {
 
     private MoneyLock moneyLock;
 
+    private PaymentTransactionStatus status;
+
     public String getId() {
         return id;
     }
@@ -44,5 +46,21 @@ public class PaymentTransaction {
     public PaymentTransaction setMoneyLock(MoneyLock moneyLock) {
         this.moneyLock = moneyLock;
         return this;
+    }
+
+    public PaymentTransactionStatus getStatus() {
+        return status;
+    }
+
+    public PaymentTransaction setStatus(PaymentTransactionStatus status) {
+        this.status = status;
+        return this;
+    }
+
+    public static PaymentTransaction open(Account sender, Account recipient) {
+        return new PaymentTransaction()
+            .setSender(sender)
+            .setRecipient(recipient)
+            .setStatus(PaymentTransactionStatus.CREATED);
     }
 }

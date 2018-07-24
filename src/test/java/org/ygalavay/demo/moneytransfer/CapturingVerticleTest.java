@@ -16,6 +16,7 @@ import org.ygalavay.demo.moneytransfer.dto.TransferRequest;
 import org.ygalavay.demo.moneytransfer.facade.TransferFacade;
 import org.ygalavay.demo.moneytransfer.model.Account;
 import org.ygalavay.demo.moneytransfer.model.Currency;
+import org.ygalavay.demo.moneytransfer.model.PaymentTransactionStatus;
 import org.ygalavay.demo.moneytransfer.repository.TestDataCreator;
 
 import java.io.File;
@@ -59,27 +60,16 @@ public class CapturingVerticleTest {
     public void shouldSuccessfullyFulfillExistingTransaction(TestContext context) {
         TransferRequest transferRequest = new TransferRequest()
             .setSender("account1@mail.com").setRecipient("ygalavay@mail.com").setAmount(50.0).setCurrency(Currency.USD);
+        Async asyncEventFulfillmentSuccess = context.async();
         transferFacade.authorize(transferRequest)
             .doOnError(error -> {
                 context.fail();
             })
             .subscribe();
 
-        Async asyncEventStartCaptureReceived = context.async();
-
         vertx.eventBus()
-            .consumer(config.getString(Constants.EVENT_DO_CAPTURE))
-            .handler(message -> {
-                asyncEventStartCaptureReceived.complete();
-            });
-
-        Async asyncEventFulfillmentSuccess = context.async();
-        asyncEventFulfillmentSuccess.await(5000);
-        vertx.eventBus()
-            .consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
-            .handler(message -> {
-                asyncEventFulfillmentSuccess.complete();
-            });
+            .<String>consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
+            .handler(message -> asyncEventFulfillmentSuccess.complete());
     }
 
 
@@ -97,14 +87,12 @@ public class CapturingVerticleTest {
         final BigDecimal senderBalanceBefore = BigDecimal.valueOf(sender.getBalance());
         final BigDecimal recipientBalanceBefore = BigDecimal.valueOf(recipient.getBalance());
 
+        Async asyncCheckBalance = context.async();
         transferFacade.authorize(transferRequest)
             .doOnError(error -> {
                 context.fail();
             })
             .subscribe();
-
-        Async asyncCheckBalance = context.async();
-        asyncCheckBalance.await(5000);
 
         vertx.eventBus()
             .<String>consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
@@ -113,6 +101,7 @@ public class CapturingVerticleTest {
                 dependencyManager.getPaymentTransactionRepository()
                     .findById(transactionId)
                     .subscribe(paymentTransaction -> {
+                        context.assertEquals(PaymentTransactionStatus.FINISHED, paymentTransaction.getStatus());
                         BigDecimal newSenderBalance = BigDecimal.valueOf(paymentTransaction.getSender().getBalance());
                         BigDecimal newRecipientBalance = BigDecimal.valueOf(paymentTransaction.getRecipient().getBalance());
                         BigDecimal amount = BigDecimal.valueOf(amountToCharge);

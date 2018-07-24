@@ -58,6 +58,7 @@ public class DefaultTransferFacade implements TransferFacade {
     public Completable fulfillTransaction(final String transactionId) {
         return transactionService
             .fulfillPaymentTransaction(transactionId)
-            .doOnComplete( () -> vertx.eventBus().publish(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS), transactionId) );
+            .doOnComplete( () -> vertx.eventBus().publish(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS), transactionId))
+            .doOnComplete(() -> log.debug("Transaction with id [%s] fulfilled successfully"));
     }
 }
