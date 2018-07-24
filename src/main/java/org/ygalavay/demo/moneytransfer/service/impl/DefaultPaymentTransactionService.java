@@ -87,14 +87,12 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
 
     }
 
-    private Completable chargeMoney(Account sender, Account recipient, double amount) {
+    private void chargeMoney(Account sender, Account recipient, double amount) {
         BigDecimal senderBalance = BigDecimal.valueOf(sender.getBalance());
         BigDecimal recipientBalance = BigDecimal.valueOf(sender.getBalance());
         BigDecimal amountToCharge = BigDecimal.valueOf(amount);
 
         sender.setBalance(senderBalance.subtract(amountToCharge).doubleValue());
         recipient.setBalance(recipientBalance.add(amountToCharge).doubleValue());
-
-        return Completable.complete();
     }
 }
