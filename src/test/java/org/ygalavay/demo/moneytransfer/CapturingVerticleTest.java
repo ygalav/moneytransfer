@@ -6,8 +6,11 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.reactivex.core.Vertx;
+import io.vertx.reactivex.core.eventbus.MessageConsumer;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ygalavay.demo.moneytransfer.configuration.Constants;
@@ -49,8 +52,14 @@ public class CapturingVerticleTest {
         TestDataCreator.of(jdbcClient).createDatabaseStructure()
             .andThen(TestDataCreator.of(jdbcClient).createUserData())
             .subscribe(() -> {
-                vertx.deployVerticle(CapturingVerticle.class.getName(), options);
-                asyncInsertData.complete();
+                vertx.deployVerticle(CapturingVerticle.class.getName(), options, asyncResult -> {
+                    if (asyncResult.failed()) {
+                        context.fail();
+
+                    }
+                    asyncInsertData.complete();
+                });
+
             });
 
 
@@ -61,22 +70,27 @@ public class CapturingVerticleTest {
         TransferRequest transferRequest = new TransferRequest()
             .setSender("account1@mail.com").setRecipient("ygalavay@mail.com").setAmount(50.0).setCurrency(Currency.USD);
         Async asyncEventFulfillmentSuccess = context.async();
+        MessageConsumer<String> consumer = vertx.eventBus()
+            .consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS));
+
+        consumer.handler(message -> {
+            asyncEventFulfillmentSuccess.complete();
+            consumer.unregister();
+        });
+
+
         transferFacade.authorize(transferRequest)
             .doOnError(error -> {
                 context.fail();
             })
             .subscribe();
-
-        vertx.eventBus()
-            .<String>consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
-            .handler(message -> asyncEventFulfillmentSuccess.complete());
     }
 
 
     @Test
     public void shouldChargeMoneyFromSenderIfTransactionSuccess(TestContext context) {
-        final String senderEmail = "account1@mail.com";
-        final String recipientEmail = "ygalavay@mail.com";
+        final String senderEmail = "ygalavay@mail.com";
+        final String recipientEmail = "account1@mail.com";
         final double amountToCharge = 50.0;
         TransferRequest transferRequest = new TransferRequest()
             .setSender(senderEmail).setRecipient(recipientEmail).setAmount(amountToCharge).setCurrency(Currency.USD);
@@ -88,11 +102,6 @@ public class CapturingVerticleTest {
         final BigDecimal recipientBalanceBefore = BigDecimal.valueOf(recipient.getBalance());
 
         Async asyncCheckBalance = context.async();
-        transferFacade.authorize(transferRequest)
-            .doOnError(error -> {
-                context.fail();
-            })
-            .subscribe();
 
         vertx.eventBus()
             .<String>consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
@@ -111,6 +120,20 @@ public class CapturingVerticleTest {
                         asyncCheckBalance.complete();
                     });
             });
+
+        transferFacade.authorize(transferRequest)
+            .doOnError(error -> {
+                context.fail();
+            })
+            .subscribe();
+    }
+
+    @After
+    public void after(TestContext context) {
+        vertx.undeploy(CapturingVerticle.class.getName(), result -> {
+            vertx.close();
+            jdbcClient.close();
+        });
     }
 
 }

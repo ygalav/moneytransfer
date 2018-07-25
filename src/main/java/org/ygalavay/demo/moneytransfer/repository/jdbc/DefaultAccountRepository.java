@@ -58,21 +58,16 @@ public class DefaultAccountRepository implements AccountRepository {
 
     @Override
     public Single<Account> getByEmail(String email) {
-        return jdbcClient
-            .rxGetConnection()
-            .flatMap(
-                connection -> connection.rxQuerySingleWithParams(SELECT_BY_EMAIL, new JsonArray().add(email))
-                    .flatMap(result -> {
-                        connection.close();
-                        Account account = new Account();
-                        account.setEmail(result.getString(0))
-                            .setName(result.getString(1))
-                            .setSurname(result.getString(2))
-                            .setBalance(result.getDouble(3))
-                            .setCurrency(Currency.valueOf(result.getString(4)));
-                        return Single.just(account);
-                    })
-            );
+        return jdbcClient.rxQuerySingleWithParams(SELECT_BY_EMAIL, new JsonArray().add(email))
+            .flatMap(result -> {
+                Account account = new Account();
+                account.setEmail(result.getString(0))
+                    .setName(result.getString(1))
+                    .setSurname(result.getString(2))
+                    .setBalance(result.getDouble(3))
+                    .setCurrency(Currency.valueOf(result.getString(4)));
+                return Single.just(account);
+            });
     }
 
     public static DefaultAccountRepository of(JDBCClient jdbcClient) {

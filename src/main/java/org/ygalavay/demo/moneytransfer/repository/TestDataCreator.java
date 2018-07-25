@@ -54,8 +54,9 @@ public class  TestDataCreator {
                 .flatMap(
                     result -> connection.rxUpdate("ALTER TABLE money_locks ADD CONSTRAINT fk2 FOREIGN KEY (transaction) REFERENCES payment_transactions(id)")
                 )
-                .flatMap(result -> Single.just(connection)))
-            .doOnSuccess(SQLConnection::close)
+                .flatMap(result -> Single.just(connection))
+                .doFinally(connection::close)
+            )
             .toCompletable();
     }
 

@@ -25,7 +25,8 @@ public class DefaultMoneyLockRepository implements MoneyLockRepository {
     public Single<MoneyLock> save(MoneyLock moneyLock) {
         return jdbcClient
             .rxGetConnection()
-            .flatMap(connection -> save(moneyLock, connection));
+            .flatMap(connection -> save(moneyLock, connection)
+                .doFinally(connection::close));
     }
 
     @Override
