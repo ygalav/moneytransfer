@@ -56,7 +56,8 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                     String.format("Error happened when saving transaction performing payment transaction, sender [%s], recipient [%s], currency [%s], amount [%s]",
                         sender.getEmail(), recipient.getEmail(), currency.name(), amount));
                 connection.rxRollback();
-            }));
+            })
+            .doFinally(connection::close));
     }
 
     @Override
@@ -74,15 +75,15 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                         .rxSetAutoCommit(false)
                         .andThen(accountRepository.update(sender)
                             .flatMap(result -> accountRepository.update(recipient))
-                            .flatMap(result -> paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED)))
+                            .flatMap(result ->
+                                paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED), connection))
                             .doOnError(error -> {
                                 connection.rxRollback();
-                                paymentTransactionRepository
-                                    .update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED))
+                                paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED), connection)
                                     .subscribe();
                             })
                             .doOnSuccess(updateResult -> connection.rxCommit()))
-                            .doFinally(connection::close));
+                            .doFinally(() -> connection.close()));
             }).toCompletable();
 
     }

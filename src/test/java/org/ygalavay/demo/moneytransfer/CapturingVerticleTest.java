@@ -6,11 +6,9 @@ import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.reactivex.core.Vertx;
-import io.vertx.reactivex.core.eventbus.MessageConsumer;
 import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.ygalavay.demo.moneytransfer.configuration.Constants;
@@ -66,28 +64,6 @@ public class CapturingVerticleTest {
     }
 
     @Test
-    public void shouldSuccessfullyFulfillExistingTransaction(TestContext context) {
-        TransferRequest transferRequest = new TransferRequest()
-            .setSender("account1@mail.com").setRecipient("ygalavay@mail.com").setAmount(50.0).setCurrency(Currency.USD);
-        Async asyncEventFulfillmentSuccess = context.async();
-        MessageConsumer<String> consumer = vertx.eventBus()
-            .consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS));
-
-        consumer.handler(message -> {
-            asyncEventFulfillmentSuccess.complete();
-            consumer.unregister();
-        });
-
-
-        transferFacade.authorize(transferRequest)
-            .doOnError(error -> {
-                context.fail();
-            })
-            .subscribe();
-    }
-
-
-    @Test
     public void shouldChargeMoneyFromSenderIfTransactionSuccess(TestContext context) {
         final String senderEmail = "ygalavay@mail.com";
         final String recipientEmail = "account1@mail.com";
@@ -101,7 +77,14 @@ public class CapturingVerticleTest {
         final BigDecimal senderBalanceBefore = BigDecimal.valueOf(sender.getBalance());
         final BigDecimal recipientBalanceBefore = BigDecimal.valueOf(recipient.getBalance());
 
-        Async asyncCheckBalance = context.async();
+        Async asyncCheckBalance = context.async(2);
+
+        transferFacade.authorize(transferRequest)
+            .doOnError(error -> {
+                context.fail();
+            })
+            .doFinally(() -> asyncCheckBalance.complete())
+            .subscribe();
 
         vertx.eventBus()
             .<String>consumer(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS))
@@ -120,12 +103,6 @@ public class CapturingVerticleTest {
                         asyncCheckBalance.complete();
                     });
             });
-
-        transferFacade.authorize(transferRequest)
-            .doOnError(error -> {
-                context.fail();
-            })
-            .subscribe();
     }
 
     @After
