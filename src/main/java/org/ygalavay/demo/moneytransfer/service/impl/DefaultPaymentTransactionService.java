@@ -68,32 +68,43 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                 Account sender = paymentTransaction.getSender();
                 Account recipient = paymentTransaction.getRecipient();
                 double amount = paymentTransaction.getMoneyLock().getAmount();
-                chargeMoney(sender, recipient, amount); //To reduce transaction scope, we extract calculations outside
+                return chargeMoney(paymentTransaction, amount) //To reduce transaction scope, we extract calculations outside
+                    .andThen(
+                        jdbcClient.rxGetConnection()
+                        .flatMap(connection -> connection
+                            .rxSetAutoCommit(false)
+                            .andThen(accountRepository.update(sender)
+                                .flatMap(result -> accountRepository.update(recipient))
+                                .flatMap(result ->
+                                    paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED), connection))
+                                .doOnError(error -> connection.rxRollback().subscribe(() -> connection.close()))
+                                .doOnSuccess(updateResult -> connection.rxCommit().subscribe(() -> connection.close())))
+                            .doFinally(() -> connection.close()))
+                    )
+                    .doOnError(error -> paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED)));
 
-                return jdbcClient.rxGetConnection()
-                    .flatMap(connection -> connection
-                        .rxSetAutoCommit(false)
-                        .andThen(accountRepository.update(sender)
-                            .flatMap(result -> accountRepository.update(recipient))
-                            .flatMap(result ->
-                                paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED), connection))
-                            .doOnError(error -> {
-                                connection.rxRollback();
-                                paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED), connection)
-                                    .subscribe();
-                            })
-                            .doOnSuccess(updateResult -> connection.rxCommit()))
-                            .doFinally(() -> connection.close()));
             }).toCompletable();
 
     }
 
-    private void chargeMoney(Account sender, Account recipient, double amount) {
+    private Completable chargeMoney(PaymentTransaction transaction, double amount) {
+        Account sender = transaction.getSender();
+        Account recipient = transaction.getRecipient();
         BigDecimal senderBalance = BigDecimal.valueOf(sender.getBalance());
-        BigDecimal recipientBalance = BigDecimal.valueOf(sender.getBalance());
+        BigDecimal recipientBalance = BigDecimal.valueOf(recipient.getBalance());
         BigDecimal amountToCharge = BigDecimal.valueOf(amount);
 
-        sender.setBalance(senderBalance.subtract(amountToCharge).doubleValue());
-        recipient.setBalance(recipientBalance.add(amountToCharge).doubleValue());
+
+        final BigDecimal newSenderBalance = senderBalance.subtract(amountToCharge);
+
+        if (newSenderBalance.compareTo(BigDecimal.ZERO) < 0) {
+            return Completable.error(
+                new IllegalStateException(String.format("Not enough balance on sender's account to process transaction, id: %s", transaction.getId())));
+        }
+
+        final BigDecimal newRecipientBalance = recipientBalance.add(amountToCharge);
+        sender.setBalance(newSenderBalance.doubleValue());
+        recipient.setBalance(newRecipientBalance.doubleValue());
+        return Completable.complete();
     }
 }
