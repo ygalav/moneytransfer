@@ -130,6 +130,36 @@ public class MoneyTransferVerticleTest {
             .end();
     }
 
+    @Test
+    public void shouldFailTransferIfAmountExceedsBalance(TestContext context) {
+        Async async = context.async();
+        final TransferRequest request = new TransferRequest()
+            .setSender("account1@mail.com")
+            .setRecipient("ygalavay@mail.com")
+            .setCurrency(Currency.USD)
+            .setAmount(150.0);
+        final String json = Json.encodePrettily(request);
+
+        vertx.createHttpClient()
+            .post(port, "localhost", "/api/transactions")
+            .putHeader("content-type", "application/json")
+            .putHeader("content-length", Integer.toString(json.length()))
+            .handler(response -> {
+                context.assertEquals(response.statusCode(), 400);
+                context.assertTrue(response.headers().get("content-type").contains("application/json"));
+                response.bodyHandler(body -> {
+                    TransferResponse transferResponse = Json.decodeValue(body, TransferResponse.class);
+                    context.assertEquals(AuthorizeResult.FAILED_LOW_BALANCE, transferResponse.getResult());
+                    async.complete();
+                }).exceptionHandler(throwable -> {
+                    context.fail(throwable);
+                    async.complete();
+                });
+            })
+            .write(json)
+            .end();
+    }
+
 
     @After
     public void tearDown(TestContext context) throws Exception {
