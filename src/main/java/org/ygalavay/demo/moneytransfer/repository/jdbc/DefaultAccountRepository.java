@@ -26,18 +26,13 @@ public class DefaultAccountRepository implements AccountRepository {
 
     @Override
     public Single<UpdateResult> create(Account account) {
-        return jdbcClient.rxGetConnection()
-            .flatMap(
-                connection -> connection.rxUpdateWithParams(
-                    "INSERT INTO accounts (email, name, surname, balance, currency) VALUES (?, ?, ?, ?, ?)",
-                    new JsonArray(
-                        Arrays.asList(
-                            account.getEmail(), account.getName(), account.getSurname(), account.getBalance(), account.getCurrency().name()
-                        )
-                    ))
-                    .doFinally(connection::close)
-            );
-
+        return jdbcClient.rxUpdateWithParams(
+            "INSERT INTO accounts (email, name, surname, balance, currency) VALUES (?, ?, ?, ?, ?)",
+            new JsonArray(
+                Arrays.asList(
+                    account.getEmail(), account.getName(), account.getSurname(), account.getBalance(), account.getCurrency().name()
+                )
+            ));
     }
 
     @Override
