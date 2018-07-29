@@ -38,7 +38,7 @@ public class  TestDataCreator {
     public Completable createDatabaseStructure() {
         return jdbcClient.rxGetConnection()
             .flatMap(connection ->
-                connection.rxUpdate("DROP SCHEMA PUBLIC CASCADE")
+                connection.rxUpdate("DROP ALL OBJECTS")
                 .flatMap(result -> connection.rxUpdate(
                     "CREATE TABLE accounts(email VARCHAR(256) NOT NULL PRIMARY KEY, name VARCHAR(256), surname VARCHAR(256), balance DOUBLE, currency VARCHAR(3))")
                 )
@@ -55,7 +55,7 @@ public class  TestDataCreator {
                     result -> connection.rxUpdate("ALTER TABLE money_locks ADD CONSTRAINT fk2 FOREIGN KEY (transaction) REFERENCES payment_transactions(id)")
                 )
                 .flatMap(result -> Single.just(connection))
-                .doFinally(connection::close)
+                .doFinally(() -> connection.close())
             )
             .toCompletable();
     }

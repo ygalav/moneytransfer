@@ -1,7 +1,11 @@
 {
     "http.port": 8080,
-    "url": "jdbc:hsqldb:file:moneytransfer;shutdown=true",
-    "driver_class" : "org.hsqldb.jdbcDriver",
+    "url": "jdbc:h2:~/test:moneytransfer",
+    "driver_class" : "org.h2.Driver",
+    "max_pool_size" : 30,
+    "initial_pool_size" : 5,
+    "max_idle_time" : 1,
+    "min_pool_size": 3,
     "event_do_capture" : "event_do_capture",
     "event_transaction_fulfilled_success" : "event_fulfilled_success",
     "event_transaction_fulfilled_unknown_error" : "event_transaction_fulfilled_unknown_error"
