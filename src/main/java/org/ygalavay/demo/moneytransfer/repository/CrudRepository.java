@@ -5,7 +5,7 @@ import io.vertx.reactivex.ext.sql.SQLConnection;
 
 public interface CrudRepository<T> {
 
-    Single<T> save(T item);
+    Single<T> create(T item);
 
-    Single<T> save(T item, SQLConnection connection);
+    Single<T> create(T item, SQLConnection connection);
 }

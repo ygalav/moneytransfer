@@ -49,7 +49,7 @@ public class DefaultTransferFacade implements TransferFacade {
                                 .eventBus()
                                 .publish(config.getString(EVENT_DO_CAPTURE), transaction.getId());
                         })
-                        .flatMap(paymentTransaction -> Single.just(TransferResponse.CREATED));
+                        .flatMap(paymentTransaction -> Single.just(TransferResponse.CREATED.setTransactionId(paymentTransaction.getId())));
                 }
             });
     }
@@ -58,6 +58,7 @@ public class DefaultTransferFacade implements TransferFacade {
     public Completable fulfillTransaction(final String transactionId) {
         return transactionService
             .fulfillPaymentTransaction(transactionId)
-            .doOnComplete( () -> vertx.eventBus().publish(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS), transactionId));
+            .doOnComplete( () -> vertx.eventBus().publish(config.getString(Constants.EVENT_FULFILLMENT_SUCCESS), transactionId))
+            .doOnError(error -> vertx.eventBus().publish(config.getString(Constants.EVENT_FULFILLMENT_UNKNOWN_ERROR), transactionId));
     }
 }

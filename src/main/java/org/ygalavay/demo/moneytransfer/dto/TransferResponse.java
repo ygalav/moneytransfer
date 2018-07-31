@@ -6,6 +6,7 @@ public class TransferResponse {
 
     private AuthorizeResult result;
     private String message;
+    private String transactionId;
 
     public TransferResponse(AuthorizeResult result, String message) {
         this.result = result;
@@ -21,6 +22,15 @@ public class TransferResponse {
 
     public String getMessage() {
         return message;
+    }
+
+    public String getTransactionId() {
+        return transactionId;
+    }
+
+    public TransferResponse setTransactionId(String transactionId) {
+        this.transactionId = transactionId;
+        return this;
     }
 
     public static TransferResponse CREATED =

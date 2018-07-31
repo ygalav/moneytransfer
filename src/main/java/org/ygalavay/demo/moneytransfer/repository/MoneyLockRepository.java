@@ -6,5 +6,5 @@ import org.ygalavay.demo.moneytransfer.model.MoneyLock;
 public interface MoneyLockRepository extends CrudRepository<MoneyLock> {
 
     @Override
-    Single<MoneyLock> save(MoneyLock moneyLock);
+    Single<MoneyLock> create(MoneyLock moneyLock);
 }

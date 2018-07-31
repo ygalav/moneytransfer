@@ -22,15 +22,15 @@ public class DefaultMoneyLockRepository implements MoneyLockRepository {
     }
 
     @Override
-    public Single<MoneyLock> save(MoneyLock moneyLock) {
+    public Single<MoneyLock> create(MoneyLock moneyLock) {
         return jdbcClient
             .rxGetConnection()
-            .flatMap(connection -> save(moneyLock, connection)
+            .flatMap(connection -> create(moneyLock, connection)
                 .doFinally(connection::close));
     }
 
     @Override
-    public Single<MoneyLock> save(MoneyLock moneyLock, SQLConnection connection) {
+    public Single<MoneyLock> create(MoneyLock moneyLock, SQLConnection connection) {
         if (moneyLock.getId() == null) {
             moneyLock.setId(UUID.randomUUID().toString());
         }

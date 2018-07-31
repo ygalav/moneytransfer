@@ -46,7 +46,7 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                     .setPaymentTransaction(savedTransaction)
                     .setCurrency(currency);
                 return moneyLockRepository
-                    .save(moneyLock, connection)
+                    .create(moneyLock, connection)
                     .flatMap(lock -> connection
                         .rxCommit()
                         .andThen(Single.just(paymentTransaction.setMoneyLock(lock))));
@@ -81,7 +81,7 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                                 .doOnSuccess(updateResult -> connection.rxCommit().subscribe(() -> connection.close())))
                             .doFinally(() -> connection.close()))
                     )
-                    .doOnError(error -> paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED)));
+                    .doOnError(error -> paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED)).subscribe());
 
             }).toCompletable();
 
