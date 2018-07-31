@@ -21,7 +21,7 @@ import java.io.File;
 import java.nio.file.Files;
 
 @RunWith(VertxUnitRunner.class)
-public class MoneyTransferVerticleTest {
+public class AuthorizationVerticleTest {
 
     private Integer port;
     private Vertx vertx;
