@@ -70,29 +70,44 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                 Account sender = paymentTransaction.getSender();
                 Account recipient = paymentTransaction.getRecipient();
                 double amount = paymentTransaction.getMoneyLock().getAmount();
-                return chargeMoney(paymentTransaction, amount) //To reduce transaction scope, we extract calculations outside
-                    .andThen(
-                        jdbcClient.rxGetConnection()
-                        .flatMap(connection -> connection
-                            .rxSetAutoCommit(false)
-                            .andThen(accountRepository.update(sender)
-                                .flatMap(result -> accountRepository.update(recipient))
-                                .flatMap(result ->
-                                    paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED), connection))
-                                .doOnError(error -> connection.rxRollback().subscribe(() -> {
-                                    LOG.error(String.format("Error during fulfilling payment transaction [%s], rolling back tre transaction", transactionId), error);
-                                    connection.close();
-                                }))
-                                .doOnSuccess(updateResult -> {
-                                    connection.rxCommit().subscribe(() -> {
-                                        connection.close();
-                                        LOG.info(String.format("Transaction [%s] has been fulfilled successfully.", transactionId));
-                                    });
-                                }))
-                            .doFinally(() -> connection.close()))
 
-                    )
-                    .doOnError(error -> paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED)).subscribe());
+
+                BigDecimal senderBalance = BigDecimal.valueOf(sender.getBalance());
+                BigDecimal recipientBalance = BigDecimal.valueOf(recipient.getBalance());
+                BigDecimal amountToCharge = BigDecimal.valueOf(amount);
+
+
+                final BigDecimal newSenderBalance = senderBalance.subtract(amountToCharge);
+
+                if (newSenderBalance.compareTo(BigDecimal.ZERO) < 0) {
+                    return paymentTransactionRepository
+                        .update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED))
+                        .flatMap(transaction -> Single.error(new IllegalStateException(String.format("Not enough balance on sender's account to process transaction, id: %s", transaction.getId()))));
+                }
+
+                final BigDecimal newRecipientBalance = recipientBalance.add(amountToCharge);
+                sender.setBalance(newSenderBalance.doubleValue());
+                recipient.setBalance(newRecipientBalance.doubleValue());
+
+
+                return jdbcClient.rxGetConnection()
+                    .flatMap(connection -> connection
+                        .rxSetAutoCommit(false)
+                        .andThen(accountRepository.update(sender)
+                            .flatMap(result -> accountRepository.update(recipient))
+                            .flatMap(result ->
+                                paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED), connection))
+                            .doOnError(error -> connection.rxRollback().subscribe(() -> {
+                                LOG.error(String.format("Error during fulfilling payment transaction [%s], rolling back tre transaction", transactionId), error);
+                                connection.close();
+                            }))
+                            .doOnSuccess(updateResult -> {
+                                connection.rxCommit().subscribe(() -> {
+                                    connection.close();
+                                    LOG.info(String.format("Transaction [%s] has been fulfilled successfully.", transactionId));
+                                });
+                            }))
+                        .doFinally(() -> connection.close()));
 
             }).toCompletable();
 

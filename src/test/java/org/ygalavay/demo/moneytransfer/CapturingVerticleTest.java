@@ -19,18 +19,24 @@ import org.junit.runner.RunWith;
 import org.ygalavay.demo.moneytransfer.configuration.Constants;
 import org.ygalavay.demo.moneytransfer.configuration.DependencyManager;
 import org.ygalavay.demo.moneytransfer.dto.TransferRequest;
+import org.ygalavay.demo.moneytransfer.dto.TransferResponse;
 import org.ygalavay.demo.moneytransfer.facade.TransferFacade;
 import org.ygalavay.demo.moneytransfer.model.Account;
 import org.ygalavay.demo.moneytransfer.model.AuthorizeResult;
 import org.ygalavay.demo.moneytransfer.model.Currency;
+import org.ygalavay.demo.moneytransfer.model.PaymentTransaction;
 import org.ygalavay.demo.moneytransfer.model.PaymentTransactionStatus;
 import org.ygalavay.demo.moneytransfer.repository.TestDataCreator;
+import org.ygalavay.demo.moneytransfer.service.AccountService;
+import org.ygalavay.demo.moneytransfer.service.PaymentTransactionService;
 
 import java.io.File;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.util.Arrays;
+
+import static org.ygalavay.demo.moneytransfer.configuration.Constants.EVENT_DO_CAPTURE;
 
 @RunWith(VertxUnitRunner.class)
 public class CapturingVerticleTest {
@@ -41,6 +47,8 @@ public class CapturingVerticleTest {
     private static JsonObject config;
     private static JDBCClient jdbcClient;
     private TransferFacade transferFacade;
+    private PaymentTransactionService transactionService;
+    private AccountService accountService;
     private DependencyManager dependencyManager;
 
     @BeforeClass
@@ -72,6 +80,8 @@ public class CapturingVerticleTest {
 
         dependencyManager = DependencyManager.getInstance(vertx, config);
         transferFacade = dependencyManager.getTransferFacade();
+        transactionService = dependencyManager.getTransactionService();
+        accountService = dependencyManager.getAccountService();
 
     }
 
@@ -97,7 +107,6 @@ public class CapturingVerticleTest {
         consumer
             .handler(message -> {
                 String transactionId = message.body();
-                LOG.info(transactionId);
                 dependencyManager.getPaymentTransactionRepository()
                     .findById(transactionId)
                     .subscribe(paymentTransaction -> {
@@ -121,6 +130,9 @@ public class CapturingVerticleTest {
     @Test
     public void shouldSendFailedMessageIfTransactionAmountIsNotCorrect(TestContext context) {
         LOG.info("Running test shouldSendFailedMessageIfTransactionAmountIsNotCorrect");
+
+        //vertx.rxUndeploy(CapturingVerticle.class.getName()).subscribe();
+
         final String senderEmail = "ygalavay@mail.com";
         final String recipientEmail = "account1@mail.com";
         final double amountToCharge = 50.0;
@@ -134,45 +146,25 @@ public class CapturingVerticleTest {
         consumer
             .handler(message -> {
                 String transactionId = message.body();
-                LOG.info(transactionId);
                 dependencyManager.getPaymentTransactionRepository()
-                    .findById(transactionId)
-                    .subscribe(paymentTransaction -> {
-                        context.assertEquals(PaymentTransactionStatus.FAILED, paymentTransaction.getStatus());
+                    .findById(transactionId).subscribe(transaction -> {
+                        context.assertEquals(PaymentTransactionStatus.FAILED, transaction.getStatus());
                         asyncCheckBalance.complete();
-                        consumer.unregister();
                     });
+
             });
 
-        Async updateTransactionSetIncorrectDataAsync = context.async();
-        transferFacade.authorize(transferRequest)
-            .doOnError(error -> context.fail())
-            .doOnSuccess((result) -> {
-                context.assertEquals(AuthorizeResult.ACCEPTED, result.getResult());
-                final String transactioId = result.getTransactionId();
-                context.assertNotNull(transactioId, "Accepted transaction should contain ID");
-                dependencyManager.getPaymentTransactionRepository()
-                    .findById(transactioId)
-                    .subscribe(transaction -> {
-                        double notValidBalance = transaction.getSender().getBalance() + 10.0;
-                        jdbcClient.rxQueryWithParams("UPDATE money_locks SET amount=? WHERE id=?",
-                            new JsonArray(
-                                Arrays.asList(notValidBalance, transaction.getMoneyLock().getId())
-                            ))
-                            .subscribe();
-                        updateTransactionSetIncorrectDataAsync.complete();
-                });
-            })
-            .subscribe();
-    }
+        Account sender = accountService.getByEmail(senderEmail).blockingGet();
+        Account recipient = accountService.getByEmail(recipientEmail).blockingGet();
+        PaymentTransaction transaction = transactionService.openPaymentTransaction(sender, recipient, Currency.USD, amountToCharge).blockingGet();
 
-    @After
-    public void after(TestContext context) {
-        Async closeAsync = context.async();
-
-        vertx.undeploy(CapturingVerticle.class.getName(), result -> {
-            closeAsync.complete();
-        });
+        double notValidBalance = transaction.getSender().getBalance() + 10.0;
+        jdbcClient.rxQueryWithParams("UPDATE money_locks SET amount=? WHERE id=?",
+            new JsonArray(
+                Arrays.asList(notValidBalance, transaction.getMoneyLock().getId())
+            ))
+            .blockingGet();
+        vertx.eventBus().publish(config.getString(EVENT_DO_CAPTURE), transaction.getId());
     }
 
 }
