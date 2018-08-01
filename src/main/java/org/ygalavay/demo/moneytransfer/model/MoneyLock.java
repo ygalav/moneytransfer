@@ -1,5 +1,7 @@
 package org.ygalavay.demo.moneytransfer.model;
 
+import io.vertx.core.json.JsonArray;
+
 public class MoneyLock {
 
     private String id;
@@ -55,5 +57,14 @@ public class MoneyLock {
     public MoneyLock setAccount(Account account) {
         this.account = account;
         return this;
+    }
+
+    public static MoneyLock of(JsonArray jsonArray) {
+        MoneyLock moneyLock = new MoneyLock();
+        moneyLock
+            .setId(jsonArray.getString(0))
+            .setAmount(jsonArray.getDouble(1))
+            .setCurrency(Currency.valueOf(jsonArray.getString(2)));
+        return moneyLock;
     }
 }

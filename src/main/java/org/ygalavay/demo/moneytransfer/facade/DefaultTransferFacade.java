@@ -38,7 +38,10 @@ public class DefaultTransferFacade implements TransferFacade {
         return accountService.getByEmail(transferRequest.getSender())
             .flatMap(sender -> {
                 if (! sender.getCurrency().equals(transferRequest.getCurrency())) return Single.just(TransferResponse.CURRENCY_NOT_MATCH);
-                if (BigDecimal.valueOf(sender.getBalance()).compareTo(BigDecimal.valueOf(transferRequest.getAmount())) < 0) return Single.just(TransferResponse.LOW_BALLANCE);
+
+                BigDecimal availableBalance = accountService.getAvailableBalanceForAccount(sender);
+
+                if (availableBalance.compareTo(BigDecimal.valueOf(transferRequest.getAmount())) < 0) return Single.just(TransferResponse.LOW_BALLANCE);
                 else {
                     return accountService.getByEmail(transferRequest.getRecipient())
                         .flatMap(

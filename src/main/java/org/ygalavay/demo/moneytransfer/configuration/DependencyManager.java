@@ -57,7 +57,7 @@ public class DependencyManager {
 
     public AccountRepository getAccountRepository() {
         if (accountRepository == null) {
-            accountRepository = new DefaultAccountRepository(getJdbcClient());
+            accountRepository = new DefaultAccountRepository(getJdbcClient(), getMoneyLockRepository());
         }
         return accountRepository;
     }

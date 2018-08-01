@@ -21,7 +21,7 @@ public class  TestDataCreator {
 
     public Completable createUserData() {
         final DefaultAccountRepository accountRepository = DefaultAccountRepository
-            .of(jdbcClient);
+            .of(jdbcClient, null);
         Account account = Account.of("account1@mail.com", "John", "Doe", 100d, Currency.USD);
         return accountRepository
             .create(account)

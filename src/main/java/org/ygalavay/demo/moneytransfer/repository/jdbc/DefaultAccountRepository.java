@@ -9,6 +9,7 @@ import io.vertx.reactivex.ext.jdbc.JDBCClient;
 import org.ygalavay.demo.moneytransfer.model.Account;
 import org.ygalavay.demo.moneytransfer.model.Currency;
 import org.ygalavay.demo.moneytransfer.repository.AccountRepository;
+import org.ygalavay.demo.moneytransfer.repository.MoneyLockRepository;
 
 import java.util.Arrays;
 
@@ -19,9 +20,11 @@ public class DefaultAccountRepository implements AccountRepository {
     private static final Logger LOG = LoggerFactory.getLogger(DefaultAccountRepository.class);
 
     private final JDBCClient jdbcClient;
+    private final MoneyLockRepository moneyLockRepository;
 
-    public DefaultAccountRepository(JDBCClient jdbcClient) {
+    public DefaultAccountRepository(JDBCClient jdbcClient, MoneyLockRepository moneyLockRepository) {
         this.jdbcClient = jdbcClient;
+        this.moneyLockRepository = moneyLockRepository;
     }
 
     @Override
@@ -62,10 +65,14 @@ public class DefaultAccountRepository implements AccountRepository {
                     .setBalance(result.getDouble(3))
                     .setCurrency(Currency.valueOf(result.getString(4)));
                 return Single.just(account);
-            });
+            })
+            .flatMap(account ->
+                moneyLockRepository
+                    .findActiveLocksForAccount(account)
+                    .flatMap(moneyLocks -> Single.just(account.setLocks(moneyLocks))));
     }
 
-    public static DefaultAccountRepository of(JDBCClient jdbcClient) {
-        return new DefaultAccountRepository(jdbcClient);
+    public static DefaultAccountRepository of(JDBCClient jdbcClient, MoneyLockRepository moneyLockRepository) {
+        return new DefaultAccountRepository(jdbcClient, moneyLockRepository);
     }
 }
