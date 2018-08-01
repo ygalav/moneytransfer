@@ -101,13 +101,12 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                                 LOG.error(String.format("Error during fulfilling payment transaction [%s], rolling back tre transaction", transactionId), error);
                                 connection.close();
                             }))
-                            .doOnSuccess(updateResult -> {
-                                connection.rxCommit().subscribe(() -> {
-                                    connection.close();
-                                    LOG.info(String.format("Transaction [%s] has been fulfilled successfully.", transactionId));
-                                });
-                            }))
-                        .doFinally(() -> connection.close()));
+                            .doOnSuccess(updateResult -> connection.rxCommit()
+                                .subscribe(() -> {
+                                connection.close();
+                                LOG.info(String.format("Transaction [%s] has been fulfilled successfully.", transactionId));
+                            })))
+                        .doFinally(connection::close));
 
             }).toCompletable();
 
