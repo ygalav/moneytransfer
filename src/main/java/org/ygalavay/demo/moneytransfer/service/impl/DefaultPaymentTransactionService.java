@@ -112,25 +112,4 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
             }).toCompletable();
 
     }
-
-    private Completable chargeMoney(PaymentTransaction transaction, double amount) {
-        Account sender = transaction.getSender();
-        Account recipient = transaction.getRecipient();
-        BigDecimal senderBalance = BigDecimal.valueOf(sender.getBalance());
-        BigDecimal recipientBalance = BigDecimal.valueOf(recipient.getBalance());
-        BigDecimal amountToCharge = BigDecimal.valueOf(amount);
-
-
-        final BigDecimal newSenderBalance = senderBalance.subtract(amountToCharge);
-
-        if (newSenderBalance.compareTo(BigDecimal.ZERO) < 0) {
-            return Completable.error(
-                new IllegalStateException(String.format("Not enough balance on sender's account to process transaction, id: %s", transaction.getId())));
-        }
-
-        final BigDecimal newRecipientBalance = recipientBalance.add(amountToCharge);
-        sender.setBalance(newSenderBalance.doubleValue());
-        recipient.setBalance(newRecipientBalance.doubleValue());
-        return Completable.complete();
-    }
 }
