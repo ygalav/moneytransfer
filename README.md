@@ -9,6 +9,8 @@ The task is develop the system, for transferring money between accounts.
 * happy path of transaction fulfillment 
 
 ### Whats worth to do
+* GET RID OF JDBC, i tried it because it goes out of the box with VertX, but it's PAIN! 
+This task can be completed with some JooQ, Hibernate etc.. 
 * Handling of the transaction initiation error
 * Retry if transaction capture has failed, it Async so can me processed until it will be successfull. 
 * Handling of the transaction capturing errors
@@ -27,7 +29,7 @@ that prevents locking money for the same account by more than ome worker at a ti
 __NOTE: This is DEMO, and it should not cover everything, I just tried to make it EXTENDABLE ENOUGH__
 
 * System does not perform currency conversion for now
-* System does not handle errors during background capturing money. It just send message to the queue, 
+* System doGies not handle errors during background capturing money. It just send message to the queue, 
 all future handlers can be implemented on demand.   
 
 #####Cases covered
