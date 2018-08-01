@@ -83,7 +83,7 @@ public class CapturingVerticleTest {
         TransferRequest transferRequest = new TransferRequest()
             .setSender(senderEmail).setRecipient(recipientEmail).setAmount(amountToCharge).setCurrency(Currency.USD);
 
-        LOG.info("Running shouldChargeMoneyFromSenderIfTransactionSuccess");
+        LOG.info("Running test shouldChargeMoneyFromSenderIfTransactionSuccess");
         final Account sender = dependencyManager.getAccountService().getByEmail(senderEmail).blockingGet();
         final Account recipient = dependencyManager.getAccountService().getByEmail(recipientEmail).blockingGet();
 
@@ -120,6 +120,7 @@ public class CapturingVerticleTest {
 
     @Test
     public void shouldSendFailedMessageIfTransactionAmountIsNotCorrect(TestContext context) {
+        LOG.info("Running test shouldSendFailedMessageIfTransactionAmountIsNotCorrect");
         final String senderEmail = "ygalavay@mail.com";
         final String recipientEmail = "account1@mail.com";
         final double amountToCharge = 50.0;

@@ -20,6 +20,8 @@ import org.ygalavay.demo.moneytransfer.model.AuthorizeResult;
 import org.ygalavay.demo.moneytransfer.model.Currency;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.nio.file.Files;
 
 @RunWith(VertxUnitRunner.class)
@@ -33,9 +35,7 @@ public class AuthorizationVerticleTestMultipleAuthorizations {
     public void setUp(TestContext context) throws Exception {
         vertx = Vertx.vertx();
 
-        byte[] bytes = Files.readAllBytes(new File("src/test/resources/config.json").toPath());
-        config = new JsonObject(new String(bytes, "UTF-8"));
-        port = config.getInteger("http.port");
+        setupConfig();
         DeploymentOptions options = new DeploymentOptions()
             .setConfig(config);
         vertx.deployVerticle(AuthorizationVerticle.class.getName(), options, context.asyncAssertSuccess());
@@ -90,6 +90,18 @@ public class AuthorizationVerticleTestMultipleAuthorizations {
     @After
     public void tearDown(TestContext context) throws Exception {
         vertx.close(context.asyncAssertSuccess());
+    }
+
+    private void setupConfig() throws IOException {
+        byte[] bytes = Files.readAllBytes(new File("src/test/resources/config.json").toPath());
+        config = new JsonObject(new String(bytes, "UTF-8"));
+        //port = config.getInteger("http.port");
+
+        ServerSocket socket = new ServerSocket(0);
+        port = socket.getLocalPort();
+        socket.close();
+        config.remove("http.port");
+        config.put("http.port", port);
     }
 
 }

@@ -22,14 +22,14 @@ public class CapturingVerticle extends AbstractVerticle {
 
         vertx.eventBus().<String>consumer(config().getString(Constants.EVENT_DO_CAPTURE)).handler(message -> {
             String transactionId = message.body();
+            log.info(String.format("Starting fulfillment for transaction %s", transactionId));
             transferFacade.fulfillTransaction(transactionId)
                 .subscribe(
-                    () -> log.info("Transaction fulfilled successfully"),
-                    (error) -> {
+                    () -> log.info(String.format("Transaction [%s] fulfilled successfully", transactionId)),
+                    error -> {
                         log.error(String.format("Fulfillment has failed for transaction [%s]", transactionId), error);
                         vertx.eventBus().publish(config().getString(EVENT_FULFILLMENT_UNKNOWN_ERROR), transactionId);
                     });
-            log.info(String.format("Starting fulfillment for transaction %s", transactionId));
         });
     }
 }

@@ -49,6 +49,7 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                     .create(moneyLock, connection)
                     .flatMap(lock -> connection
                         .rxCommit()
+                        .doOnComplete(() -> LOG.info("Transaction [%s] has ben processed with status [%s]".format(paymentTransaction.getId(), paymentTransaction.getStatus())))
                         .andThen(Single.just(paymentTransaction.setMoneyLock(lock))));
             })
             .doOnError(error -> {
@@ -65,6 +66,7 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
 
         return paymentTransactionRepository.findById(transactionId)
             .flatMap(paymentTransaction -> {
+                LOG.info(String.format("Changing sender, recipients ballance for transaction [%s]", transactionId));
                 Account sender = paymentTransaction.getSender();
                 Account recipient = paymentTransaction.getRecipient();
                 double amount = paymentTransaction.getMoneyLock().getAmount();
@@ -77,9 +79,18 @@ public class DefaultPaymentTransactionService implements PaymentTransactionServi
                                 .flatMap(result -> accountRepository.update(recipient))
                                 .flatMap(result ->
                                     paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FINISHED), connection))
-                                .doOnError(error -> connection.rxRollback().subscribe(() -> connection.close()))
-                                .doOnSuccess(updateResult -> connection.rxCommit().subscribe(() -> connection.close())))
+                                .doOnError(error -> connection.rxRollback().subscribe(() -> {
+                                    LOG.error(String.format("Error during fulfilling payment transaction [%s], rolling back tre transaction", transactionId), error);
+                                    connection.close();
+                                }))
+                                .doOnSuccess(updateResult -> {
+                                    connection.rxCommit().subscribe(() -> {
+                                        connection.close();
+                                        LOG.info(String.format("Transaction [%s] has been fulfilled successfully.", transactionId));
+                                    });
+                                }))
                             .doFinally(() -> connection.close()))
+
                     )
                     .doOnError(error -> paymentTransactionRepository.update(paymentTransaction.setStatus(PaymentTransactionStatus.FAILED)).subscribe());
 
